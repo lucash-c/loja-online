@@ -7,6 +7,14 @@ const routes = [
     ]
   },
 
+  {
+    path: '/pedido-sucesso',
+    component: () => import('layouts/SuccessLayout.vue'),
+    children: [
+      { path: '', component: () => import('src/pages/SuccessPage.vue') }
+    ]
+  },
+
   // Always leave this as last one,
   // but you can also remove it
   {

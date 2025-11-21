@@ -1,47 +1,54 @@
 <template>
-  <q-card class="product-card">
-    <!-- Imagem do produto -->
-    <q-img
-      :src="imageSrc"
-      class="product-img"
-      @error="handleImageError"
-    />
+  <q-card class="q-ma-sm q-pa-sm">
+    <q-card-section class="row items-center no-wrap">
+      <!-- Imagem -->
+      <q-img
+        :src="getImageSrc(product.imagem)"
+        :alt="product.nome"
+        width="120px"
+        height="120px"
+        class="q-mr-md"
+      />
 
-    <!-- Informações do produto -->
-    <q-card-section class="q-pt-sm q-pb-none">
-      <div class="product-name">{{ product.nome }}</div>
-      <div class="product-price">
-        R$ {{ Number(product.preco).toFixed(2) }}
-      </div>
-      <div v-if="product.descricao" class="product-description">
-        {{ product.descricao }}
+      <!-- Informações do produto -->
+      <div>
+        <div class="product-name">{{ product.nome }}</div>
+        <div class="product-description">
+          {{ product.descricao }}
+        </div>
+        <div class="product-price">
+          R$ {{ Number(product.preco).toFixed(2) }}
+        </div>
       </div>
     </q-card-section>
 
-    <!-- Botão de ação -->
-    <q-card-actions align="right" class="q-pa-sm">
-      <q-btn
-        icon="add_shopping_cart"
-        label="Adicionar"
-        color="primary"
-        flat
-        no-caps
-        class="add-btn"
-        @click="$emit('add-to-cart', product)"
-      />
+    <q-card-actions align="right">
+      <q-btn color="primary" label="Adicionar" @click="handleAddClick" />
     </q-card-actions>
   </q-card>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { inject } from "vue";
+import { getImageSrc } from "../utils/image";
 
-const props = defineProps({ product: Object })
-const imageSrc = ref(props.product.imagem)
+const props = defineProps({
+  product: {
+    type: Object,
+    required: true,
+  },
+});
 
-function handleImageError() {
-  imageSrc.value =
-    'https://via.placeholder.com/300x225?text=Imagem+N%C3%A3o+Dispon%C3%ADvel'
+// Função injetada do IndexPage para abrir o dialog de adicionais
+const openAddonsDialog = inject("openAddonsDialog");
+
+function handleAddClick() {
+  if (openAddonsDialog) {
+    openAddonsDialog(props.product);
+    console.log(props.product.imagem);
+  } else {
+    console.error("Função openAddonsDialog não encontrada!");
+  }
 }
 </script>
 
@@ -55,11 +62,6 @@ function handleImageError() {
 
 .product-card:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-}
-
-.product-img {
-  height: 200px;
-  object-fit: cover;
 }
 
 .product-name {

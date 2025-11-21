@@ -2,7 +2,7 @@
   "name": "loja-planilha",
   "version": "0.0.1",
   "description": "A Quasar Project",
-  "productName": "Web Vitrine",
+  "productName": "Pedido Online",
   "author": "Lucas Campos <lucash_c@yahoo.com.br>",
   "private": true,
   "scripts": {
@@ -15,6 +15,7 @@
   "dependencies": {
     "@quasar/extras": "^1.16.4",
     "axios": "^1.8.4",
+    "papaparse": "^5.5.3",
     "pinia": "^2.3.1",
     "quasar": "^2.16.0",
     "vue": "^3.4.18",
