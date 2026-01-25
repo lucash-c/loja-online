@@ -1,4 +1,4 @@
-const PAYMENT_API_BASE_URL = 'https://deliveryapp-googlesheets-api-mercadopago.vcuzdz.easypanel.host'
+const PAYMENT_API_BASE_URL = 'http://dwgkk4gwgwok0koo8480k8oo.109.199.124.100.sslip.io/'
 
 // ID fixo da planilha (pode mover para .env se quiser)
 const SHEET_ID = "1yJ3Hn7wYZeGc5sagoHeyjmSWd6RittvUaUQ0FDqoA4A";

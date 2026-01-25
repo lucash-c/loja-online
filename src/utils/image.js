@@ -10,7 +10,7 @@ export function getImageSrc(imagem) {
     const driveMatch = imagem.match(/drive\.google\.com\/file\/d\/([\w-]+)\//);
     if (driveMatch) {
       const id = driveMatch[1];
-      return `http://45.77.163.37:32769/img/${id}`;
+      return `http://qg084wwocgssookkw8ckkskw.109.199.124.100.sslip.io/img/${id}`;
     }
 
     // Links absolutos ou caminhos locais

@@ -1,4 +1,4 @@
-const DISTANCE_API_BASE_URL = 'https://deliveryapp-googlesheets-maps.vcuzdz.easypanel.host';
+const DISTANCE_API_BASE_URL = 'http://yss4sogcw0808kwskw4gg8cg.109.199.124.100.sslip.io/';
 
 export async function getDistance(cep1, cep2) {
   try {

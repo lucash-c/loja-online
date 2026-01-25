@@ -1,7 +1,7 @@
 import { getEntregaConfig } from "src/services/sheetApi";
 
 const DISTANCIA_API_URL =
-  "https://deliveryapp-googlesheets-maps.vcuzdz.easypanel.host/distancia";
+  "http://yss4sogcw0808kwskw4gg8cg.109.199.124.100.sslip.io/distancia";
 
 /**
  * Calcula a distância entre CEP da loja e do cliente
