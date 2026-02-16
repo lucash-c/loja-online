@@ -1,5 +1,13 @@
 <template>
   <q-page class="q-pa-md">
+    <q-banner
+      v-if="contextError"
+      class="bg-orange-1 text-orange-10 q-mb-md"
+      rounded
+    >
+      {{ contextError }}
+    </q-banner>
+
     <!-- Produtos agrupados -->
     <div
       v-for="(items, category) in groupedProducts"
@@ -26,7 +34,7 @@
 
     <!-- Banner quando não tem produtos -->
     <q-banner
-      v-if="Object.keys(groupedProducts).length === 0"
+      v-if="!contextError && Object.keys(groupedProducts).length === 0"
       class="bg-grey-2 text-grey-8 q-mt-xl"
     >
       Nenhum produto encontrado com "{{ searchTerm }}"
@@ -61,7 +69,7 @@
 <script setup>
 import { ref, computed, onMounted, watch, provide } from "vue";
 import { getPublicMenu } from "src/services/menuApi";
-import { resolvePublicKey } from "src/services/publicMenuContext";
+import { resolvePublicKey, resolveLojaKey } from "src/store/publicContext";
 import { useCartStore } from "src/store/cart";
 import ProductCard from "src/components/ProductCard.vue";
 import CartDrawer from "src/components/CartDrawer.vue";
@@ -76,6 +84,7 @@ const cartOpen = ref(false);
 const addonsDialogOpen = ref(false);
 const selectedProduct = ref(null);
 const cartStore = useCartStore();
+const contextError = ref("");
 
 // Busca via URL
 const searchTerm = ref(route.query.search || "");
@@ -132,8 +141,21 @@ const filteredAddons = computed(() => {
 
 // Carrega produtos e addons
 onMounted(async () => {
+  const publicKey = resolvePublicKey(route);
+  const lojaKey = resolveLojaKey(route);
+
+  if (!publicKey) {
+    contextError.value =
+      "Não encontramos a chave pública do cardápio. Verifique o link recebido da loja.";
+    return;
+  }
+
+  if (!lojaKey) {
+    contextError.value =
+      "Cardápio carregado, mas a chave de pedido não foi encontrada. Você poderá navegar, mas não enviar pedidos.";
+  }
+
   try {
-    const publicKey = resolvePublicKey(route);
     const menu = await getPublicMenu(publicKey);
 
     products.value = menu.products;
@@ -144,6 +166,9 @@ onMounted(async () => {
     }
   } catch (error) {
     console.error("Erro ao carregar dados:", error);
+    if (!contextError.value) {
+      contextError.value = "Não foi possível carregar o cardápio agora. Tente novamente em instantes.";
+    }
   }
 });
 
