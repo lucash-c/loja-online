@@ -272,6 +272,8 @@ import PagamentoDialog from "../components/PagamentoDialog.vue";
 import ConfirmOrder from "../components/ConfirmOrder.vue";
 import { getImageSrc } from "../utils/image";
 import { calcularEntrega } from "src/services/deliveryService";
+import { getLojaKeyOrThrow } from "src/services/orderApi";
+import { useRoute } from "vue-router";
 
 const props = defineProps({ isOpen: { type: Boolean, default: false } });
 const emit = defineEmits(["update:isOpen"]);
@@ -284,6 +286,7 @@ const isOpenProxy = computed({
 const cart = useCartStore();
 const { confirm } = useAppDialog();
 const router = useRouter();
+const route = useRoute();
 const pagamentoDialog = ref(null);
 const lojaData = JSON.parse(localStorage.getItem("loja") || "{}");
 
@@ -320,7 +323,13 @@ const cartTotal = computed(() => {
 });
 
 function openOrderTypeDialog() {
-  orderTypeDialog.value = true;
+  try {
+    getLojaKeyOrThrow(route);
+    orderTypeDialog.value = true;
+  } catch (error) {
+    dialogMessage.value = error.message || "Não foi possível enviar pedidos agora.";
+    showDialog.value = true;
+  }
 }
 
 function selectOrderType(type) {
