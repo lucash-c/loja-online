@@ -1,4 +1,5 @@
-import { getEntregaConfig } from "src/services/sheetApi";
+import { getEntregaConfig } from "src/services/menuApi";
+import { resolvePublicKey } from "src/services/publicMenuContext";
 
 const DISTANCIA_API_URL =
   "http://yss4sogcw0808kwskw4gg8cg.109.199.124.100.sslip.io/distancia";
@@ -17,7 +18,7 @@ async function calcularDistancia(cepLoja, cepCliente) {
 }
 
 /**
- * Calcula taxa e tempo de entrega/retirada com base na planilha
+ * Calcula taxa e tempo de entrega/retirada com base nas configurações do backend
  */
 export async function calcularEntrega(cepCliente, tipoPedido = "entrega") {
   try {
@@ -26,7 +27,8 @@ export async function calcularEntrega(cepCliente, tipoPedido = "entrega") {
       throw new Error("CEP da loja não encontrado no localStorage");
     }
 
-    const configuracoes = await getEntregaConfig();
+    const publicKey = resolvePublicKey();
+    const configuracoes = await getEntregaConfig(publicKey);
 
     const cepLoja = loja.cep;
     let distancia = 0;
@@ -36,7 +38,7 @@ export async function calcularEntrega(cepCliente, tipoPedido = "entrega") {
       distancia = await calcularDistancia(cepLoja, cepCliente);
     }
 
-    // Procurar linha de retirada na planilha
+    // Procurar linha de retirada nas configurações
     const linhaRetirada = configuracoes.find(
       (c) =>
         String(c["distancia-km"]).trim().toLowerCase() === "0"
@@ -75,7 +77,7 @@ export async function calcularEntrega(cepCliente, tipoPedido = "entrega") {
       .sort((a, b) => a.distancia - b.distancia);
 
     if (faixas.length === 0) {
-      throw new Error("Nenhuma faixa de entrega configurada na planilha.");
+      throw new Error("Nenhuma faixa de entrega configurada no backend.");
     }
 
     const limiteMaximo = faixas[faixas.length - 1].distancia;

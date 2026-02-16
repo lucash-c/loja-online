@@ -1,13 +1,15 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { getProducts } from 'src/services/sheetApi';
+import { getProducts } from 'src/services/menuApi';
+import { resolvePublicKey } from 'src/services/publicMenuContext';
 
 export const useProductStore = defineStore('products', () => {
   const products = ref([]);
 
   async function loadProducts() {
     try {
-      products.value = await getProducts();
+      const publicKey = resolvePublicKey();
+      products.value = await getProducts(publicKey);
     } catch (error) {
       console.error("Erro ao carregar produtos:", error);
     }

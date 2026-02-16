@@ -60,7 +60,8 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, provide } from "vue";
-import { getProducts, getAddons, getLoja } from "src/services/sheetApi";
+import { getPublicMenu } from "src/services/menuApi";
+import { resolvePublicKey } from "src/services/publicMenuContext";
 import { useCartStore } from "src/store/cart";
 import ProductCard from "src/components/ProductCard.vue";
 import CartDrawer from "src/components/CartDrawer.vue";
@@ -132,13 +133,14 @@ const filteredAddons = computed(() => {
 // Carrega produtos e addons
 onMounted(async () => {
   try {
-    products.value = await getProducts();
-    addons.value = await getAddons();
+    const publicKey = resolvePublicKey(route);
+    const menu = await getPublicMenu(publicKey);
 
-    // Buscar dados da loja e salvar
-    const lojaData = await getLoja();
-    if (lojaData && lojaData.length > 0) {
-      localStorage.setItem("loja", JSON.stringify(lojaData[0]));
+    products.value = menu.products;
+    addons.value = menu.addons;
+
+    if (menu.loja) {
+      localStorage.setItem("loja", JSON.stringify(menu.loja));
     }
   } catch (error) {
     console.error("Erro ao carregar dados:", error);

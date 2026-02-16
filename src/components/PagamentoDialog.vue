@@ -183,7 +183,8 @@
 <script setup>
 import { ref, computed } from "vue";
 import { useQuasar } from "quasar";
-import { getFormasPagamento } from "../services/sheetApi";
+import { getFormasPagamento } from "src/services/menuApi";
+import { resolvePublicKey } from "src/services/publicMenuContext";
 import {
   gerarPixQrCode,
   verificarStatusPix,
@@ -331,12 +332,13 @@ async function open() {
   qrCodeText.value = null;
   pagamentoDinheiro.value = false;
 
-  const formas = await getFormasPagamento();
+  const publicKey = resolvePublicKey();
+  const formas = await getFormasPagamento(publicKey);
   const aceitas = formas[0] || {};
   formasDisponiveis.value = {};
 
   Object.entries(aceitas).forEach(([key, value]) => {
-    if (value.toUpperCase() === "SIM") {
+    if (String(value || "").toUpperCase() === "SIM" || value === true) {
       formasDisponiveis.value[key] = formatarLabel(key);
     }
   });
