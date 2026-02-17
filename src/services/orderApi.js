@@ -29,11 +29,32 @@ export async function createPublicOrder(payload, lojaKey, idempotencyKey) {
     headers['Idempotency-Key'] = idempotencyKey;
   }
 
-  const response = await fetch(buildOrdersUrl(), {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(payload),
-  });
+  const controller = new AbortController();
+  const timeoutMs = 12000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  const bodyPayload = idempotencyKey
+    ? { ...payload, idempotency_key: idempotencyKey }
+    : payload;
+
+  let response;
+  try {
+    response = await fetch(buildOrdersUrl(), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(bodyPayload),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      const timeoutError = new Error('TIMEOUT_ERROR');
+      timeoutError.code = 'TIMEOUT_ERROR';
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const data = await response.json().catch(() => null);
 

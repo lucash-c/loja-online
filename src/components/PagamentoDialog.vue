@@ -15,6 +15,7 @@
             isOpen = false;
             resetarPix();
           "
+          :disable="props.isSubmitting"
         />
       </q-toolbar>
 
@@ -33,6 +34,7 @@
             clickable
             v-ripple
             @click="selecionarForma(key)"
+            :disable="props.isSubmitting"
           >
             <q-item-section>{{ label }}</q-item-section>
           </q-item>
@@ -77,13 +79,14 @@
               icon="arrow_back"
               label="Voltar"
               @click="cancelarTroco"
+              :disable="props.isSubmitting"
             />
             <q-btn
               color="primary"
               icon="check_circle"
               label="Confirmar"
               @click="confirmarTroco"
-              :disable="precisaTroco === 'sim' && erroTroco"
+              :disable="(precisaTroco === 'sim' && erroTroco) || props.isSubmitting"
             />
           </div>
         </div>
@@ -196,6 +199,7 @@ const isSandbox = false;
 
 const props = defineProps({
   total: { type: Number, required: true },
+  isSubmitting: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(["confirmar"]);
