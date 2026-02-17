@@ -94,13 +94,17 @@ watch(
 );
 
 // Filtra produtos pelo termo de busca
+const activeProducts = computed(() =>
+  products.value.filter((product) => product.is_active !== false)
+);
+
 const filteredProducts = computed(() => {
-  if (!searchTerm.value) return products.value;
+  if (!searchTerm.value) return activeProducts.value;
   const normalizedSearch = searchTerm.value
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
-  return products.value.filter((product) => {
+  return activeProducts.value.filter((product) => {
     const name = (product.nome || "")
       .toLowerCase()
       .normalize("NFD")
@@ -131,6 +135,7 @@ const filteredAddons = computed(() => {
     .replace(/[\u0300-\u036f]/g, "")
     .toUpperCase();
   return addons.value.filter((addon) => {
+    if (addon.is_active === false) return false;
     const addonCategory = (addon.categoria || "Outros")
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
@@ -158,8 +163,8 @@ onMounted(async () => {
   try {
     const menu = await getPublicMenu(publicKey);
 
-    products.value = menu.products;
-    addons.value = menu.addons;
+    products.value = (menu.products || []).filter((product) => product.is_active !== false);
+    addons.value = (menu.addons || []).filter((addon) => addon.is_active !== false);
 
     if (menu.loja) {
       localStorage.setItem("loja", JSON.stringify(menu.loja));
@@ -181,6 +186,7 @@ function openAddonsDialogFn(product) {
     .replace(/[\u0300-\u036f]/g, "")
     .toUpperCase();
   const categoryAddons = addons.value.filter((addon) => {
+    if (addon.is_active === false) return false;
     const addonCategory = (addon.categoria || "Outros")
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
@@ -188,7 +194,7 @@ function openAddonsDialogFn(product) {
     return addonCategory === productCategory;
   });
 
-  if (categoryAddons.length === 0) {
+  if (!product.has_options || categoryAddons.length === 0) {
     cartStore.addItem(product);
     animateCart();
     return;

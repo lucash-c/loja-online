@@ -31,7 +31,6 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
-import { useCartStore } from "src/store/cart";
 import { useAppDialog } from "src/utils/dialogs";
 
 const props = defineProps({
@@ -39,14 +38,13 @@ const props = defineProps({
   product: { type: Object, default: null },
   addons: { type: Array, default: () => [] },
 });
-const emit = defineEmits(["update:isOpen"]);
+const emit = defineEmits(["update:isOpen", "confirm"]);
 
 const isOpenProxy = computed({
   get: () => props.isOpen,
   set: (val) => emit("update:isOpen", val),
 });
 
-const cart = useCartStore();
 const { confirm } = useAppDialog();
 const selectedAddons = ref([]);
 
@@ -58,7 +56,9 @@ watch(
 );
 
 const addonOptions = computed(() =>
-  (props.addons || []).map((a) => ({
+  (props.addons || [])
+    .filter((a) => a.is_active !== false)
+    .map((a) => ({
     label: `${a.nome} (+R$${Number(a.preco).toFixed(2)})`,
     value: a,
   }))
@@ -74,7 +74,7 @@ function confirmAddWithAddons() {
     } adicionais?`,
     icon: "shopping_cart",
   }).onOk(() => {
-    cart.addItem(props.product, selectedAddons.value);
+    emit("confirm", { product: props.product, addons: selectedAddons.value });
     emit("update:isOpen", false);
   });
 }

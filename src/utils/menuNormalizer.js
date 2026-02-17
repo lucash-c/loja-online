@@ -140,10 +140,10 @@ export function normalizeProduct(raw = {}) {
     raw.categoria?.id,
     null
   );
-  const hasOptions = toBoolean(
-    pickFirst(raw.has_options, raw.hasOptions, raw.tem_opcoes),
-    options.length > 0
+  const activeOptions = options.filter((option) =>
+    (option.items || []).some((item) => item.is_active)
   );
+  const hasOptions = activeOptions.length > 0;
   const isActive = toBoolean(pickFirst(raw.is_active, raw.active, raw.ativo), true);
   const imageUrl = pickFirst(raw.image_url, raw.imageUrl, raw.imagem, raw.image, null);
 

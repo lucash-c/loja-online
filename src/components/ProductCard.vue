@@ -23,7 +23,12 @@
     </q-card-section>
 
     <q-card-actions align="right">
-      <q-btn color="primary" label="Adicionar" @click="handleAddClick" />
+      <q-btn
+        color="primary"
+        label="Adicionar"
+        :disable="product.is_active === false"
+        @click="handleAddClick"
+      />
     </q-card-actions>
   </q-card>
 </template>
@@ -45,7 +50,6 @@ const openAddonsDialog = inject("openAddonsDialog");
 function handleAddClick() {
   if (openAddonsDialog) {
     openAddonsDialog(props.product);
-    console.log(props.product.imagem);
   } else {
     console.error("Função openAddonsDialog não encontrada!");
   }
