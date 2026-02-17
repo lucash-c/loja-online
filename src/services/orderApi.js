@@ -1,6 +1,7 @@
 import { resolveLojaKey } from 'src/store/publicContext';
 
 const ORDER_API_BASE_URL = (import.meta.env.VITE_ORDER_API_BASE_URL || '').replace(/\/$/, '');
+const ALLOWED_ORDER_TYPES = ['entrega', 'retirada', 'local'];
 
 function buildOrdersUrl() {
   return ORDER_API_BASE_URL ? `${ORDER_API_BASE_URL}/api/orders` : '/api/orders';
@@ -13,6 +14,16 @@ export function getLojaKeyOrThrow(route) {
   }
 
   return lojaKey;
+}
+
+export function normalizeOrderType(orderType) {
+  const normalizedOrderType = String(orderType || '').trim().toLowerCase();
+
+  if (!ALLOWED_ORDER_TYPES.includes(normalizedOrderType)) {
+    throw new Error('Tipo de pedido inválido. Use: entrega, retirada ou local.');
+  }
+
+  return normalizedOrderType;
 }
 
 export async function createPublicOrder(payload, lojaKey, idempotencyKey) {
@@ -33,9 +44,14 @@ export async function createPublicOrder(payload, lojaKey, idempotencyKey) {
   const timeoutMs = 12000;
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+  const normalizedPayload = {
+    ...payload,
+    order_type: normalizeOrderType(payload?.order_type),
+  };
+
   const bodyPayload = idempotencyKey
-    ? { ...payload, idempotency_key: idempotencyKey }
-    : payload;
+    ? { ...normalizedPayload, idempotency_key: idempotencyKey }
+    : normalizedPayload;
 
   let response;
   try {

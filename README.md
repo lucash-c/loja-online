@@ -199,3 +199,67 @@ items[].unit_price
 items[].options[] no formato flat (option_* + item_* + price)
 
 order_type padronizado.
+
+## 3) Exemplos de payload (frontend/backend/PDV)
+
+### Exemplo de item serializado no carrinho/pedido
+```json
+{
+  "product_id": "77",
+  "product_name": "Pizza G",
+  "quantity": 1,
+  "unit_price": 67.9,
+  "options": [
+    {
+      "option_id": "10",
+      "option_name": "Borda",
+      "item_id": "101",
+      "item_name": "Cheddar",
+      "price": 8
+    }
+  ]
+}
+```
+
+### Exemplo de payload final para `POST /api/orders`
+```json
+{
+  "order_type": "entrega",
+  "origin": "cardapio-online",
+  "customer_name": "João",
+  "customer_phone": "11999999999",
+  "items": [
+    {
+      "product_id": "77",
+      "product_name": "Pizza G",
+      "quantity": 1,
+      "unit_price": 67.9,
+      "options": [
+        {
+          "option_id": "10",
+          "option_name": "Borda",
+          "item_id": "101",
+          "item_name": "Cheddar",
+          "price": 8
+        }
+      ]
+    }
+  ],
+  "delivery_address": {
+    "street": "Rua Exemplo",
+    "number": "100",
+    "neighborhood": "Centro",
+    "city": "São Paulo",
+    "state": "SP",
+    "postal_code": "01001000"
+  }
+}
+```
+
+### Enum de `order_type`
+Valores aceitos:
+- `entrega`
+- `retirada`
+- `local`
+
+Qualquer valor fora desse enum deve ser rejeitado para evitar inconsistência entre frontend, backend e PDV.

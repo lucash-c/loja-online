@@ -1,11 +1,11 @@
 import { defineStore } from "pinia";
 
-function toNumber(value, fallback = 0) {
+export function toNumber(value, fallback = 0) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : fallback;
 }
 
-function normalizeFlatOption(option = {}) {
+export function normalizeFlatOption(option = {}) {
   return {
     option_id: String(option?.option_id ?? option?.optionId ?? option?.option?.id ?? ""),
     option_name: option?.option_name ?? option?.optionName ?? option?.option?.name ?? "",
@@ -15,7 +15,7 @@ function normalizeFlatOption(option = {}) {
   };
 }
 
-function sortFlatOptions(options = []) {
+export function sortFlatOptions(options = []) {
   return [...options].sort((a, b) => {
     const left = `${a.option_id}:${a.item_id}`;
     const right = `${b.option_id}:${b.item_id}`;
@@ -23,7 +23,7 @@ function sortFlatOptions(options = []) {
   });
 }
 
-function dedupeKey(productId, options = []) {
+export function dedupeKey(productId, options = []) {
   return JSON.stringify({
     product_id: String(productId ?? ""),
     options: sortFlatOptions(options).map((option) => ({
@@ -34,20 +34,22 @@ function dedupeKey(productId, options = []) {
   });
 }
 
-function getOptionTypeById(product, optionId) {
+export function getOptionTypeById(product, optionId) {
   const option = (product?.options || []).find(
     (current) => String(current?.id ?? current?.codigo ?? "") === String(optionId ?? "")
   );
 
   const type = String(option?.type ?? option?.tipo ?? "sum").toLowerCase();
-  if (["sum", "highest", "average"].includes(type)) {
-    return type;
+  const canonicalType = { single: "highest", multiple: "sum" }[type] ?? type;
+
+  if (["sum", "highest", "average"].includes(canonicalType)) {
+    return canonicalType;
   }
 
   return "sum";
 }
 
-function getOptionsPriceByRule(product, options = []) {
+export function getOptionsPriceByRule(product, options = []) {
   const grouped = options.reduce((acc, option) => {
     const key = String(option.option_id ?? "");
     if (!acc[key]) {
@@ -73,7 +75,7 @@ function getOptionsPriceByRule(product, options = []) {
   }, 0);
 }
 
-function normalizeCartItem(product, rawOptions = []) {
+export function normalizeCartItem(product, rawOptions = []) {
   const normalizedOptions = sortFlatOptions(rawOptions.map((option) => normalizeFlatOption(option)));
   const basePrice = toNumber(product?.base_price ?? product?.price ?? product?.preco, 0);
   const optionsPrice = getOptionsPriceByRule(product, normalizedOptions);
