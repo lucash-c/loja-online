@@ -40,6 +40,28 @@ quasar build
 ### Customize the configuration
 See [Configuring quasar.config.js](https://v2.quasar.dev/quasar-cli-vite/quasar-config-js).
 
+## Links públicos por restaurante
+
+Com as rotas parametrizadas, os links finais do cardápio e da tela de sucesso ficam assim:
+
+- Cardápio: `/r/:publicKey`
+- Pedido enviado com sucesso: `/r/:publicKey/pedido-sucesso`
+
+Exemplos:
+
+- `https://seu-dominio.com/r/restaurante-abc123`
+- `https://seu-dominio.com/r/restaurante-abc123/pedido-sucesso`
+
+### Compatibilidade temporária
+
+A rota `/` continua aceitando links antigos com query string, por exemplo:
+
+- `/?publicKey=restaurante-abc123`
+- `/?key=restaurante-abc123`
+
+Quando essas queries são informadas, o app redireciona automaticamente para `/r/:publicKey`.
+
+
 1) Padrão de produtos com opções e itens (compatível com o PDV que recebera pedidos deste cardapio online)
 Produto
 No cadastro de produto, o PDV espera algo nesse padrão:

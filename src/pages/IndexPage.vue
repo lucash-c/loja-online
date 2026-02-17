@@ -146,8 +146,15 @@ const filteredAddons = computed(() => {
 
 // Carrega produtos e addons
 onMounted(async () => {
+  const routePublicKey = String(route.params.publicKey || "").trim();
   const publicKey = resolvePublicKey(route);
   const lojaKey = resolveLojaKey(route);
+
+  if (route.path.startsWith("/r") && !routePublicKey) {
+    contextError.value =
+      "Link inválido: a chave pública do restaurante não foi informada na URL.";
+    return;
+  }
 
   if (!publicKey) {
     contextError.value =
