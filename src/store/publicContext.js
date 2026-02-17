@@ -18,22 +18,31 @@ const QUERY_ALIASES = {
   lojaKey: ['lojaKey', 'orderKey', 'xLojaKey'],
 };
 
+const PARAM_ALIASES = {
+  publicKey: ['publicKey'],
+  lojaKey: ['lojaKey'],
+};
+
 function normalizeValue(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function getRouteValue(route, aliases = []) {
-  if (!route) return '';
-
+function getRouteFieldValue(routeField = {}, aliases = []) {
   for (const alias of aliases) {
-    const fromQuery = normalizeValue(route?.query?.[alias]);
-    if (fromQuery) return fromQuery;
-
-    const fromParams = normalizeValue(route?.params?.[alias]);
-    if (fromParams) return fromParams;
+    const value = normalizeValue(routeField?.[alias]);
+    if (value) return value;
   }
 
   return '';
+}
+
+function getRouteValue(route, paramAliases = [], queryAliases = []) {
+  if (!route) return '';
+
+  const fromParams = getRouteFieldValue(route.params, paramAliases);
+  if (fromParams) return fromParams;
+
+  return getRouteFieldValue(route.query, queryAliases);
 }
 
 function getEnvValue(aliases = []) {
@@ -55,7 +64,11 @@ function persistValue(storageKey, value) {
 }
 
 function resolveKey({ type, route, fallbackValue = '' }) {
-  const routeValue = getRouteValue(route, QUERY_ALIASES[type]);
+  const routeValue = getRouteValue(
+    route,
+    PARAM_ALIASES[type] || [],
+    QUERY_ALIASES[type] || []
+  );
   const envValue = getEnvValue(ENV_ALIASES[type]);
   const storageValue = getStorageValue(STORAGE_KEYS[type]);
   const fallback = normalizeValue(fallbackValue || FALLBACK_VALUES[type]);

@@ -283,6 +283,7 @@ import { getImageSrc } from "../utils/image";
 import { calcularEntrega } from "src/services/deliveryService";
 import { createPublicOrder, getLojaKeyOrThrow } from "src/services/orderApi";
 import { useRoute } from "vue-router";
+import { resolvePublicKey } from "src/store/publicContext";
 
 const props = defineProps({ isOpen: { type: Boolean, default: false } });
 const emit = defineEmits(["update:isOpen"]);
@@ -508,6 +509,19 @@ function clearPersistedIdempotencyKey() {
   localStorage.removeItem(IDEMPOTENCY_STORAGE_KEY);
 }
 
+function getSuccessRouteLocation() {
+  const currentPublicKey = resolvePublicKey(route);
+
+  if (!currentPublicKey) {
+    throw new Error("Não encontramos a chave pública para concluir o pedido.");
+  }
+
+  return {
+    name: "order-success",
+    params: { publicKey: currentPublicKey },
+  };
+}
+
 function getOrCreateIdempotencyKey() {
   const existingKey = getPersistedIdempotencyKey();
   if (existingKey) {
@@ -561,7 +575,7 @@ async function enviarPedidoWhatsapp(metodoPagamento) {
     cart.clearCart();
     clearPersistedIdempotencyKey();
     isOpenProxy.value = false;
-    router.push("/pedido-sucesso");
+    router.push(getSuccessRouteLocation());
   } catch (error) {
     if (error.code === "TIMEOUT_ERROR") {
       try {
@@ -569,7 +583,7 @@ async function enviarPedidoWhatsapp(metodoPagamento) {
         cart.clearCart();
         clearPersistedIdempotencyKey();
         isOpenProxy.value = false;
-        router.push("/pedido-sucesso");
+        router.push(getSuccessRouteLocation());
         return;
       } catch (retryError) {
         if (retryError.code !== "TIMEOUT_ERROR") {
