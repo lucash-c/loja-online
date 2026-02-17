@@ -224,14 +224,7 @@ function animateCart() {
 // Preço total do carrinho
 const totalPrice = computed(() =>
   cartStore.items.reduce((total, item) => {
-    let itemTotal = Number(item.preco) * item.quantidade;
-    if (item.addons && item.addons.length) {
-      itemTotal += item.addons.reduce(
-        (sum, addon) => sum + Number(addon.preco),
-        0
-      );
-    }
-    return total + itemTotal;
+    return total + cartStore.itemSubtotal(item);
   }, 0)
 );
 </script>

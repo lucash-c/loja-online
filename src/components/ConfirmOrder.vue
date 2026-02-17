@@ -72,34 +72,32 @@
           <strong>Itens: </strong>
           <div
             v-for="item in cart.items"
-            :key="item.codigo + JSON.stringify(item.addons)"
+            :key="item.product_id + JSON.stringify(item.options)"
             class="q-mb-sm"
           >
             <q-card flat bordered class="q-pa-sm bg-grey-1">
               <div class="row items-center">
                 <q-badge color="primary" text-color="white" class="q-mr-sm">
-                  x{{ item.quantidade }}
+                  x{{ item.quantity }}
                 </q-badge>
-                <span class="text-weight-medium">{{ item.nome }}</span>
+                <span class="text-weight-medium">{{ item.product_name }}</span>
                 <span class="q-ml-auto text-subtitle2"
                   >R$ {{ itemSubtotal(item).toFixed(2) }}</span
                 >
               </div>
               <div
-                v-if="item.addons && item.addons.length"
+                v-if="item.options && item.options.length"
                 class="q-mt-xs q-ml-md"
               >
                 <q-chip
-                  v-for="addon in item.addons"
-                  :key="addon.codigo"
+                  v-for="option in item.options"
+                  :key="`${option.option_id}-${option.item_id}`"
                   outline
                   dense
                   color="secondary"
                   text-color="white"
                   class="q-mr-xs q-mb-xs"
-                  :label="`${addon.nome} - R$ ${Number(addon.preco).toFixed(
-                    2
-                  )}`"
+                  :label="`${option.item_name} - R$ ${Number(option.price).toFixed(2)}`"
                 />
               </div>
             </q-card>
@@ -152,10 +150,7 @@ const cart = useCartStore();
 const metodoPagamento = ref("");
 
 function itemSubtotal(item) {
-  const addonsTotal = item.addons
-    ? item.addons.reduce((sum, a) => sum + Number(a.preco), 0)
-    : 0;
-  return (Number(item.preco) + addonsTotal) * item.quantidade;
+  return cart.itemSubtotal(item);
 }
 
 const cartTotal = computed(() => {
@@ -172,7 +167,7 @@ function handleClose() {
 
 function handleProceed() {
   emit("proceed", {
-    items: cart.items,
+    items: cart.serializeItemsForOrder(),
     total: cartTotal.value,
     orderData: props.orderData,
     tipo: props.selectedOrderType,
