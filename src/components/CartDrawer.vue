@@ -124,7 +124,7 @@
         label="Enviar pedido"
         icon="send"
         @click="openOrderTypeDialog"
-        :disable="!cart.items.length"
+        :disable="!cart.items.length || isSubmittingOrder"
         class="full-width text-weight-medium"
         glossy
       />
@@ -212,7 +212,13 @@
 
         <q-card-actions align="right">
           <q-btn flat label="Cancelar" v-close-popup />
-          <q-btn color="primary" label="Enviar" @click="sendOrder" />
+          <q-btn
+            color="primary"
+            label="Enviar"
+            :loading="loading"
+            :disable="loading || isSubmittingOrder"
+            @click="sendOrder"
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -274,7 +280,7 @@ import PagamentoDialog from "../components/PagamentoDialog.vue";
 import ConfirmOrder from "../components/ConfirmOrder.vue";
 import { getImageSrc } from "../utils/image";
 import { calcularEntrega } from "src/services/deliveryService";
-import { getLojaKeyOrThrow } from "src/services/orderApi";
+import { createPublicOrder, getLojaKeyOrThrow } from "src/services/orderApi";
 import { useRoute } from "vue-router";
 
 const props = defineProps({ isOpen: { type: Boolean, default: false } });
@@ -314,6 +320,7 @@ const dialogMessage = ref("");
 
 // Loading
 const loading = ref(false);
+const isSubmittingOrder = ref(false);
 
 // Total do carrinho
 const cartTotal = computed(() => {
@@ -420,7 +427,74 @@ async function sendOrder() {
   }
 }
 
-function enviarPedidoWhatsapp(metodoPagamento) {
+function formatPaymentMethod(metodoPagamento) {
+  if (typeof metodoPagamento === "object" && metodoPagamento.forma) {
+    if (metodoPagamento.forma === "Dinheiro" && metodoPagamento.troco) {
+      return `Dinheiro (Troco R$ ${Number(
+        metodoPagamento.troco - cartTotal.value
+      ).toFixed(2)})`;
+    }
+
+    return metodoPagamento.forma;
+  }
+
+  return metodoPagamento;
+}
+
+function buildPublicOrderPayload(metodoPagamentoTexto) {
+  const isEntrega = selectedOrderType.value === "entrega";
+  const isLocal = selectedOrderType.value === "local";
+  const deliveryEstimatedTimeMinutes = Number.parseInt(
+    String(tempoEntrega.value || "").replace(/\D/g, ""),
+    10
+  );
+
+  return {
+    order_type: selectedOrderType.value,
+    customer_name: orderData.value.nome,
+    table: isLocal ? orderData.value.mesa || null : null,
+    payment_method: metodoPagamentoTexto,
+    items: cart.items.map((item) => ({
+      product_name: item.product_name,
+      quantity: Number(item.quantity) || 0,
+      unit_price: Number(item.unit_price) || 0,
+      options: (item.options || []).map((option) => ({
+        option_id: option.option_id,
+        option_name: option.option_name,
+        item_id: option.item_id,
+        item_name: option.item_name,
+        price: Number(option.price) || 0,
+      })),
+    })),
+    delivery_address: isEntrega
+      ? {
+          cep: orderData.value.cep || "",
+          street: endereco.value.logradouro || "",
+          number: orderData.value.numero || "",
+          neighborhood: endereco.value.bairro || "",
+          city: endereco.value.localidade || "",
+          state: endereco.value.uf || "",
+        }
+      : null,
+    delivery_fee: isEntrega ? Number(frete.value) || 0 : 0,
+    delivery_distance_km: isEntrega ? Number(distanciaKm.value) || 0 : null,
+    delivery_estimated_time_minutes:
+      isEntrega && !Number.isNaN(deliveryEstimatedTimeMinutes)
+        ? deliveryEstimatedTimeMinutes
+        : null,
+    origin: "cardapio-online",
+  };
+}
+
+function gerarIdempotencyKey() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+
+  return `pedido-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+async function enviarPedidoWhatsapp(metodoPagamento) {
   if (!lojaData || lojaData.status?.toLowerCase() !== "aberto") {
     Dialog.create({
       title: "Loja Fechada",
@@ -435,61 +509,41 @@ function enviarPedidoWhatsapp(metodoPagamento) {
     return; // ⛔ Interrompe o fluxo do pedido
   }
 
-  let metodoPagamentoTexto = "";
-  if (typeof metodoPagamento === "object" && metodoPagamento.forma) {
-    if (metodoPagamento.forma === "Dinheiro" && metodoPagamento.troco) {
-      metodoPagamentoTexto = `Dinheiro (Troco R$ ${Number(
-        metodoPagamento.troco - cartTotal.value
-      ).toFixed(2)})`;
-    } else {
-      metodoPagamentoTexto = metodoPagamento.forma;
-    }
-  } else {
-    metodoPagamentoTexto = metodoPagamento;
+  if (isSubmittingOrder.value) {
+    return;
   }
 
-  const tipoPedidoLabel =
-    selectedOrderType.value === "local"
-      ? "Comer na Loja"
-      : selectedOrderType.value;
-  let mensagem = `*Novo Pedido*\n\n*Cliente:* ${orderData.value.nome}\n*Tipo de Pedido:* ${tipoPedidoLabel}\n`;
-
-  if (selectedOrderType.value === "entrega") {
-    mensagem += `*Endereço:* ${endereco.value.logradouro}, ${orderData.value.numero} - ${endereco.value.bairro}, ${endereco.value.localidade}\n`;
-    mensagem += `*CEP:* ${cepCliente.value}\n`;
-    mensagem += `*Frete:* R$ ${Number(frete.value || 0).toFixed(2)}\n`;
-  } else if (selectedOrderType.value === "local") {
-    mensagem += `*Mesa:* ${orderData.value.mesa}\n`;
+  let lojaKey = "";
+  try {
+    lojaKey = getLojaKeyOrThrow(route);
+  } catch (error) {
+    dialogMessage.value =
+      error.message || "Não foi possível enviar pedidos agora.";
+    showDialog.value = true;
+    return;
   }
 
-  mensagem += `\n*Itens:*\n`;
-  cart.items.forEach((item) => {
-    mensagem += `- ${item.quantity}x ${item.product_name} - R$ ${itemSubtotal(
-      item
-    ).toFixed(2)}\n`;
-    if (item.options?.length) {
-      item.options.forEach(
-        (option) =>
-          (mensagem += `   + ${option.item_name} - R$ ${Number(
-            option.price
-          ).toFixed(2)}\n`)
-      );
-    }
-  });
+  const metodoPagamentoTexto = formatPaymentMethod(metodoPagamento);
+  const payload = buildPublicOrderPayload(metodoPagamentoTexto);
+  const idempotencyKey = gerarIdempotencyKey();
 
-  mensagem += `\n*Total:* R$ ${cartTotal.value.toFixed(2)}\n`;
-  mensagem += `*Tempo estimado:* ${tempoEntrega.value}\n`;
-  mensagem += `*Pagamento:* ${metodoPagamentoTexto}\n`;
+  loading.value = true;
+  isSubmittingOrder.value = true;
 
-  const telefoneLoja = "55" + lojaData.whatsapp.replace(/\D/g, "");
-  const url = `https://wa.me/${telefoneLoja}?text=${encodeURIComponent(
-    mensagem
-  )}`;
-  window.open(url, "_blank");
+  try {
+    await createPublicOrder(payload, lojaKey, idempotencyKey);
 
-  cart.clearCart();
-  isOpenProxy.value = false;
-  router.push("/");
+    cart.clearCart();
+    isOpenProxy.value = false;
+    router.push("/pedido-sucesso");
+  } catch (error) {
+    dialogMessage.value =
+      error.message || "Não foi possível enviar seu pedido. Tente novamente.";
+    showDialog.value = true;
+  } finally {
+    loading.value = false;
+    isSubmittingOrder.value = false;
+  }
 }
 
 function itemSubtotal(item) {
