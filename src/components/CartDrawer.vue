@@ -28,14 +28,14 @@
     <q-list padding class="q-pa-sm">
       <q-item
         v-for="item in cart.items"
-        :key="item.codigo + JSON.stringify(item.addons)"
+        :key="item.product_id + JSON.stringify(item.options)"
         class="cart-item q-pa-sm"
       >
         <div class="flex items-center" style="width: 100%">
           <!-- Imagem -->
           <q-img
-            :src="getImageSrc(item.imagem)"
-            :alt="item.nome"
+            :src="getImageSrc(item.image_url)"
+            :alt="item.product_name"
             width="55px"
             height="55px"
             class="rounded-borders shadow-2 q-mr-md"
@@ -44,26 +44,26 @@
           <!-- Conteúdo -->
           <div class="col">
             <div class="text-subtitle1 text-weight-medium q-mb-xs">
-              {{ item.nome }}
+              {{ item.product_name }}
             </div>
 
             <div class="text-caption text-grey-7">
-              R$ {{ Number(item.preco).toFixed(2) }} x {{ item.quantidade }}
+              R$ {{ Number(item.unit_price).toFixed(2) }} x {{ item.quantity }}
             </div>
 
             <div
-              v-if="item.addons && item.addons.length"
+              v-if="item.options && item.options.length"
               class="q-mt-xs flex wrap"
             >
               <q-badge
-                v-for="addon in item.addons"
-                :key="addon.codigo"
+                v-for="option in item.options"
+                :key="`${option.option_id}-${option.item_id}`"
                 dense
                 color="secondary"
                 text-color="white"
                 class="q-mr-xs q-mb-xs q-pr-sm"
               >
-                + {{ addon.nome }} - R$ {{ Number(addon.preco).toFixed(2) }}
+                + {{ option.item_name }} - R$ {{ Number(option.price).toFixed(2) }}
               </q-badge>
             </div>
 
@@ -450,13 +450,13 @@ function enviarPedidoWhatsapp(metodoPagamento) {
 
   mensagem += `\n*Itens:*\n`;
   cart.items.forEach((item) => {
-    mensagem += `- ${item.quantidade}x ${item.nome} - R$ ${(
-      Number(item.preco) * item.quantidade
+    mensagem += `- ${item.quantity}x ${item.product_name} - R$ ${(
+      itemSubtotal(item)
     ).toFixed(2)}\n`;
-    if (item.addons?.length) {
-      item.addons.forEach(
-        (addon) =>
-          (mensagem += `   + ${addon.nome} - R$ ${Number(addon.preco).toFixed(
+    if (item.options?.length) {
+      item.options.forEach(
+        (option) =>
+          (mensagem += `   + ${option.item_name} - R$ ${Number(option.price).toFixed(
             2
           )}\n`)
       );
@@ -479,10 +479,7 @@ function enviarPedidoWhatsapp(metodoPagamento) {
 }
 
 function itemSubtotal(item) {
-  const addonsTotal = item.addons
-    ? item.addons.reduce((sum, a) => sum + Number(a.preco), 0)
-    : 0;
-  return (Number(item.preco) + addonsTotal) * item.quantidade;
+  return cart.itemSubtotal(item);
 }
 
 function confirmClearCart() {
@@ -496,8 +493,8 @@ function confirmClearCart() {
 function increase(item) {
   const index = cart.items.findIndex(
     (i) =>
-      i.codigo === item.codigo &&
-      JSON.stringify(i.addons || []) === JSON.stringify(item.addons || [])
+      i.product_id === item.product_id &&
+      JSON.stringify(i.options || []) === JSON.stringify(item.options || [])
   );
   if (index !== -1) cart.increaseQty(index);
 }
@@ -505,8 +502,8 @@ function increase(item) {
 function decrease(item) {
   const index = cart.items.findIndex(
     (i) =>
-      i.codigo === item.codigo &&
-      JSON.stringify(i.addons || []) === JSON.stringify(item.addons || [])
+      i.product_id === item.product_id &&
+      JSON.stringify(i.options || []) === JSON.stringify(item.options || [])
   );
   if (index !== -1) cart.decreaseQty(index);
 }
