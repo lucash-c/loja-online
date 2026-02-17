@@ -63,7 +63,8 @@
                 text-color="white"
                 class="q-mr-xs q-mb-xs q-pr-sm"
               >
-                + {{ option.item_name }} - R$ {{ Number(option.price).toFixed(2) }}
+                + {{ option.item_name }} - R$
+                {{ Number(option.price).toFixed(2) }}
               </q-badge>
             </div>
 
@@ -149,7 +150,7 @@
           <q-btn
             color="accent"
             label="Comer na Loja"
-            @click="selectOrderType('loja')"
+            @click="selectOrderType('local')"
           />
         </q-card-actions>
       </q-card>
@@ -201,7 +202,7 @@
           </div>
 
           <q-input
-            v-if="selectedOrderType === 'loja'"
+            v-if="selectedOrderType === 'local'"
             v-model="orderData.mesa"
             label="Mesa"
             outlined
@@ -255,6 +256,7 @@
     :endereco="endereco"
     :frete="frete"
     :tempoEntrega="tempoEntrega"
+    :distanciaKm="distanciaKm"
     :cart="cart"
     :cartTotal="cartTotal"
     @close="confirmOrderDialog = false"
@@ -327,7 +329,8 @@ function openOrderTypeDialog() {
     getLojaKeyOrThrow(route);
     orderTypeDialog.value = true;
   } catch (error) {
-    dialogMessage.value = error.message || "Não foi possível enviar pedidos agora.";
+    dialogMessage.value =
+      error.message || "Não foi possível enviar pedidos agora.";
     showDialog.value = true;
   }
 }
@@ -378,20 +381,27 @@ async function sendOrder() {
 
       entregaAtende.value = true;
       distanciaKm.value = Number(resultado.distancia || 0);
+      orderData.value.cep = cepCliente.value;
     } else if (selectedOrderType.value === "retirada") {
       resultado = await calcularEntrega("", "retirada");
       entregaAtende.value = true;
       distanciaKm.value = 0;
-    } else if (selectedOrderType.value === "loja") {
+      orderData.value.cep = "";
+      orderData.value.numero = "";
+      endereco.value = {};
+    } else if (selectedOrderType.value === "local") {
       if (!orderData.value.mesa) {
         loading.value = false;
         dialogMessage.value = "Por favor, insira o número da mesa.";
         showDialog.value = true;
         return;
       }
-      resultado = await calcularEntrega("", "loja");
+      resultado = await calcularEntrega("", "local");
       entregaAtende.value = true;
       distanciaKm.value = 0;
+      orderData.value.cep = "";
+      orderData.value.numero = "";
+      endereco.value = {};
     }
 
     // Definir tempo, frete e mensagem
@@ -438,27 +448,31 @@ function enviarPedidoWhatsapp(metodoPagamento) {
     metodoPagamentoTexto = metodoPagamento;
   }
 
-  let mensagem = `*Novo Pedido*\n\n*Cliente:* ${orderData.value.nome}\n*Tipo de Pedido:* ${selectedOrderType.value}\n`;
+  const tipoPedidoLabel =
+    selectedOrderType.value === "local"
+      ? "Comer na Loja"
+      : selectedOrderType.value;
+  let mensagem = `*Novo Pedido*\n\n*Cliente:* ${orderData.value.nome}\n*Tipo de Pedido:* ${tipoPedidoLabel}\n`;
 
   if (selectedOrderType.value === "entrega") {
     mensagem += `*Endereço:* ${endereco.value.logradouro}, ${orderData.value.numero} - ${endereco.value.bairro}, ${endereco.value.localidade}\n`;
     mensagem += `*CEP:* ${cepCliente.value}\n`;
     mensagem += `*Frete:* R$ ${Number(frete.value || 0).toFixed(2)}\n`;
-  } else if (selectedOrderType.value === "loja") {
+  } else if (selectedOrderType.value === "local") {
     mensagem += `*Mesa:* ${orderData.value.mesa}\n`;
   }
 
   mensagem += `\n*Itens:*\n`;
   cart.items.forEach((item) => {
-    mensagem += `- ${item.quantity}x ${item.product_name} - R$ ${(
-      itemSubtotal(item)
+    mensagem += `- ${item.quantity}x ${item.product_name} - R$ ${itemSubtotal(
+      item
     ).toFixed(2)}\n`;
     if (item.options?.length) {
       item.options.forEach(
         (option) =>
-          (mensagem += `   + ${option.item_name} - R$ ${Number(option.price).toFixed(
-            2
-          )}\n`)
+          (mensagem += `   + ${option.item_name} - R$ ${Number(
+            option.price
+          ).toFixed(2)}\n`)
       );
     }
   });
