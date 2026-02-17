@@ -35,7 +35,7 @@
         </div>
 
         <div
-          v-else-if="selectedOrderType === 'loja'"
+          v-else-if="selectedOrderType === 'local'"
           class="row items-center q-mb-sm"
         >
           <q-icon
@@ -97,7 +97,9 @@
                   color="secondary"
                   text-color="white"
                   class="q-mr-xs q-mb-xs"
-                  :label="`${option.item_name} - R$ ${Number(option.price).toFixed(2)}`"
+                  :label="`${option.item_name} - R$ ${Number(
+                    option.price
+                  ).toFixed(2)}`"
                 />
               </div>
             </q-card>
@@ -137,6 +139,7 @@ const props = defineProps({
   endereco: { type: Object, default: () => ({}) },
   frete: { type: [Number, String], default: 0 },
   tempoEntrega: { type: String, default: "" },
+  distanciaKm: { type: [Number, String], default: 0 },
 });
 
 const emit = defineEmits(["update:modelValue", "close", "proceed"]);
@@ -166,12 +169,35 @@ function handleClose() {
 }
 
 function handleProceed() {
+  const isEntrega = props.selectedOrderType === "entrega";
+  const deliveryEstimatedTimeMinutes = Number.parseInt(
+    String(props.tempoEntrega || "").replace(/\D/g, ""),
+    10
+  );
+
   emit("proceed", {
     items: cart.serializeItemsForOrder(),
     total: cartTotal.value,
     orderData: props.orderData,
+    order_type: props.selectedOrderType,
     tipo: props.selectedOrderType,
-    frete: Number(props.frete) || 0,
+    frete: isEntrega ? Number(props.frete) || 0 : 0,
+    delivery_fee: isEntrega ? Number(props.frete) || 0 : 0,
+    delivery_distance_km: isEntrega ? Number(props.distanciaKm) || 0 : null,
+    delivery_estimated_time_minutes:
+      isEntrega && !Number.isNaN(deliveryEstimatedTimeMinutes)
+        ? deliveryEstimatedTimeMinutes
+        : null,
+    delivery_address: isEntrega
+      ? {
+          cep: props.orderData.cep || "",
+          street: props.endereco.logradouro || "",
+          number: props.orderData.numero || "",
+          neighborhood: props.endereco.bairro || "",
+          city: props.endereco.localidade || "",
+          state: props.endereco.uf || "",
+        }
+      : null,
     pagamento: metodoPagamento.value,
   });
   emit("update:modelValue", false);
