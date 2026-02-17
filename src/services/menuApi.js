@@ -1,3 +1,9 @@
+import {
+  normalizeOption,
+  normalizeOptionItem,
+  normalizeProduct,
+} from 'src/utils/menuNormalizer';
+
 const MENU_API_BASE_URL = (import.meta.env.VITE_MENU_API_BASE_URL || '').replace(/\/$/, '');
 const MENU_CACHE_KEY = 'publicMenu';
 
@@ -41,8 +47,8 @@ async function parseResponsePayload(response) {
 function normalizeMenuPayload(payload) {
   const root = payload?.data || payload || {};
 
-  const products = root.products || root.produtos || root.items || [];
-  const addons = root.addons || root.adicionais || root.options || [];
+  const productsRaw = root.products || root.produtos || root.items || [];
+  const addonsRaw = root.addons || root.adicionais || root.options || [];
   const loja = root.store || root.loja || null;
   const entregaConfig =
     root.delivery_config ||
@@ -58,9 +64,21 @@ function normalizeMenuPayload(payload) {
     root.pagamento ||
     [];
 
+  const products = Array.isArray(productsRaw)
+    ? productsRaw.map((product) => normalizeProduct(product))
+    : [];
+
+  const addons = Array.isArray(addonsRaw)
+    ? addonsRaw.map((addon) =>
+        Array.isArray(addon?.items) || Array.isArray(addon?.itens)
+          ? normalizeOption(addon)
+          : normalizeOptionItem(addon)
+      )
+    : [];
+
   return {
-    products: Array.isArray(products) ? products : [],
-    addons: Array.isArray(addons) ? addons : [],
+    products,
+    addons,
     loja,
     entregaConfig: Array.isArray(entregaConfig) ? entregaConfig : [entregaConfig].filter(Boolean),
     formasPagamento: Array.isArray(formasPagamento)
