@@ -227,6 +227,7 @@
     <PagamentoDialog
       ref="pagamentoDialog"
       :total="cartTotal"
+      :isSubmitting="isSubmittingOrder"
       @confirmar="enviarPedidoWhatsapp"
     />
 
@@ -321,6 +322,7 @@ const dialogMessage = ref("");
 // Loading
 const loading = ref(false);
 const isSubmittingOrder = ref(false);
+const IDEMPOTENCY_STORAGE_KEY = "checkout:idempotency-key";
 
 // Total do carrinho
 const cartTotal = computed(() => {
@@ -494,6 +496,29 @@ function gerarIdempotencyKey() {
   return `pedido-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function getPersistedIdempotencyKey() {
+  return localStorage.getItem(IDEMPOTENCY_STORAGE_KEY) || "";
+}
+
+function persistIdempotencyKey(key) {
+  localStorage.setItem(IDEMPOTENCY_STORAGE_KEY, key);
+}
+
+function clearPersistedIdempotencyKey() {
+  localStorage.removeItem(IDEMPOTENCY_STORAGE_KEY);
+}
+
+function getOrCreateIdempotencyKey() {
+  const existingKey = getPersistedIdempotencyKey();
+  if (existingKey) {
+    return existingKey;
+  }
+
+  const newKey = gerarIdempotencyKey();
+  persistIdempotencyKey(newKey);
+  return newKey;
+}
+
 async function enviarPedidoWhatsapp(metodoPagamento) {
   if (!lojaData || lojaData.status?.toLowerCase() !== "aberto") {
     Dialog.create({
@@ -525,7 +550,7 @@ async function enviarPedidoWhatsapp(metodoPagamento) {
 
   const metodoPagamentoTexto = formatPaymentMethod(metodoPagamento);
   const payload = buildPublicOrderPayload(metodoPagamentoTexto);
-  const idempotencyKey = gerarIdempotencyKey();
+  const idempotencyKey = getOrCreateIdempotencyKey();
 
   loading.value = true;
   isSubmittingOrder.value = true;
@@ -534,9 +559,33 @@ async function enviarPedidoWhatsapp(metodoPagamento) {
     await createPublicOrder(payload, lojaKey, idempotencyKey);
 
     cart.clearCart();
+    clearPersistedIdempotencyKey();
     isOpenProxy.value = false;
     router.push("/pedido-sucesso");
   } catch (error) {
+    if (error.code === "TIMEOUT_ERROR") {
+      try {
+        await createPublicOrder(payload, lojaKey, idempotencyKey);
+        cart.clearCart();
+        clearPersistedIdempotencyKey();
+        isOpenProxy.value = false;
+        router.push("/pedido-sucesso");
+        return;
+      } catch (retryError) {
+        if (retryError.code !== "TIMEOUT_ERROR") {
+          clearPersistedIdempotencyKey();
+        }
+        dialogMessage.value =
+          retryError.code === "TIMEOUT_ERROR"
+            ? "O pedido está demorando para responder. Tente novamente; vamos reutilizar a mesma confirmação para evitar duplicidade."
+            : retryError.message ||
+              "Não foi possível enviar seu pedido. Tente novamente.";
+        showDialog.value = true;
+        return;
+      }
+    }
+
+    clearPersistedIdempotencyKey();
     dialogMessage.value =
       error.message || "Não foi possível enviar seu pedido. Tente novamente.";
     showDialog.value = true;
@@ -601,6 +650,7 @@ watch(cepCliente, (v) => {
 });
 
 function abrirPagamento(order) {
+  getOrCreateIdempotencyKey();
   pagamentoDialog.value?.open(order);
 }
 </script>
