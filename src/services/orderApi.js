@@ -15,15 +15,23 @@ export function getLojaKeyOrThrow(route) {
   return lojaKey;
 }
 
-export async function createPublicOrder(payload, route) {
-  const lojaKey = getLojaKeyOrThrow(route);
+export async function createPublicOrder(payload, lojaKey, idempotencyKey) {
+  if (!lojaKey) {
+    throw new Error('Não encontramos a chave da loja para enviar seu pedido.');
+  }
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-LOJA-KEY': lojaKey,
+  };
+
+  if (idempotencyKey) {
+    headers['Idempotency-Key'] = idempotencyKey;
+  }
 
   const response = await fetch(buildOrdersUrl(), {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-LOJA-KEY': lojaKey,
-    },
+    headers,
     body: JSON.stringify(payload),
   });
 
