@@ -14,11 +14,15 @@ function removePublicKeyFromQuery(query = {}) {
 const routes = [
   {
     path: '/:publicKey',
-    beforeEnter: (to) => {
+    redirect: (to) => {
       const publicKey = normalizePublicKey(to.params?.publicKey);
 
       if (!publicKey || publicKey.toLowerCase() === 'r') {
-        return true;
+        return {
+          path: '/',
+          query: to.query,
+          replace: true,
+        };
       }
 
       return {
