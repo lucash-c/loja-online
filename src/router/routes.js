@@ -13,6 +13,23 @@ function removePublicKeyFromQuery(query = {}) {
 
 const routes = [
   {
+    path: '/:publicKey',
+    beforeEnter: (to) => {
+      const publicKey = normalizePublicKey(to.params?.publicKey);
+
+      if (!publicKey || publicKey.toLowerCase() === 'r') {
+        return true;
+      }
+
+      return {
+        path: `/r/${encodeURIComponent(publicKey)}`,
+        query: to.query,
+        replace: true,
+      };
+    },
+  },
+
+  {
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
     beforeEnter: (to) => {

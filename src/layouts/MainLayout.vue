@@ -28,7 +28,7 @@
           v-if="loja"
           class="q-ml-sm text-white flex flex-column justify-center"
         >
-          <div class="text-h6">{{ loja.nome }}</div>
+          <div class="text-h6">{{ lojaNome }}</div>
           <div
             :class="[
               'text-subtitle2 q-ml-sm',
@@ -145,6 +145,8 @@ const observers = [];
 const routerViewKey = ref(0);
 const loja = ref(null);
 
+const lojaNome = computed(() => loja.value?.nome || loja.value?.name || 'Pedido Online');
+
 // Responsividade
 const isMobile = computed(() => $q.screen.lt.md);
 
@@ -166,7 +168,7 @@ onMounted(() => {
     }
   }
 
-  document.title = loja.value.nome || "Pedido Online";
+  document.title = lojaNome.value;
 
   productStore.loadProducts().then(() => {
     nextTick(() => {
