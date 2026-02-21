@@ -14,8 +14,8 @@ const ENV_ALIASES = {
 };
 
 const QUERY_ALIASES = {
-  publicKey: ['publicKey', 'key', 'menuKey'],
-  lojaKey: ['lojaKey', 'orderKey', 'xLojaKey'],
+  publicKey: ['publicKey', 'key', 'menuKey', 'public_key', 'loja'],
+  lojaKey: ['lojaKey', 'orderKey', 'xLojaKey', 'loja', 'public_key'],
 };
 
 const PARAM_ALIASES = {
