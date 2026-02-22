@@ -15,12 +15,21 @@ const ENV_ALIASES = {
 
 const QUERY_ALIASES = {
   publicKey: ['publicKey', 'key', 'menuKey', 'public_key', 'loja'],
-  lojaKey: ['lojaKey', 'orderKey', 'xLojaKey', 'loja', 'public_key'],
+  lojaKey: [
+    'lojaKey',
+    'orderKey',
+    'xLojaKey',
+    'loja',
+    'public_key',
+    'publicKey',
+    'key',
+    'menuKey',
+  ],
 };
 
 const PARAM_ALIASES = {
   publicKey: ['publicKey'],
-  lojaKey: ['lojaKey'],
+  lojaKey: ['lojaKey', 'publicKey'],
 };
 
 function normalizeValue(value) {
@@ -87,7 +96,12 @@ export function resolvePublicKey(route, fallbackValue) {
 }
 
 export function resolveLojaKey(route, fallbackValue) {
-  return resolveKey({ type: 'lojaKey', route, fallbackValue });
+  const publicKeyFallback = resolvePublicKey(route);
+  return resolveKey({
+    type: 'lojaKey',
+    route,
+    fallbackValue: fallbackValue || publicKeyFallback,
+  });
 }
 
 export function hasPublicKey(route) {
