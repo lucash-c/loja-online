@@ -81,9 +81,15 @@
                   x{{ item.quantity }}
                 </q-badge>
                 <span class="text-weight-medium">{{ item.product_name }}</span>
-                <span class="q-ml-auto text-subtitle2"
-                  >R$ {{ itemSubtotal(item).toFixed(2) }}</span
-                >
+                <div class="q-ml-auto text-right">
+                  <div class="text-caption text-grey-7">
+                    Base: R$ {{ itemBasePrice(item).toFixed(2) }} x
+                    {{ item.quantity }}
+                  </div>
+                  <span class="text-subtitle2 text-weight-medium">
+                    R$ {{ itemSubtotal(item).toFixed(2) }}
+                  </span>
+                </div>
               </div>
               <div
                 v-if="item.options && item.options.length"
@@ -97,7 +103,9 @@
                   color="secondary"
                   text-color="white"
                   class="q-mr-xs q-mb-xs"
-                  :label="`${option.name} - R$ ${Number(option.price).toFixed(2)}`"
+                  :label="`${optionLabel(option)} • R$ ${Number(
+                    option.price
+                  ).toFixed(2)}`"
                 />
               </div>
             </q-card>
@@ -152,6 +160,14 @@ const metodoPagamento = ref("");
 
 function itemSubtotal(item) {
   return cart.itemSubtotal(item);
+}
+
+function itemBasePrice(item) {
+  return Number(item?.base_unit_price ?? item?.unit_price ?? 0);
+}
+
+function optionLabel(option) {
+  return option?.name || option?.item_name || "Adicional";
 }
 
 const cartTotal = computed(() => {

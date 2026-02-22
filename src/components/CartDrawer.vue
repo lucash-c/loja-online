@@ -25,7 +25,7 @@
     </q-toolbar>
 
     <!-- Lista de Itens -->
-    <q-list padding class="q-pa-sm">
+    <q-list padding class="q-pa-sm cart-list">
       <q-item
         v-for="item in cart.items"
         :key="item.product_id + JSON.stringify(item.options)"
@@ -48,28 +48,39 @@
             </div>
 
             <div class="text-caption text-grey-7">
-              R$ {{ Number(item.unit_price).toFixed(2) }} x {{ item.quantity }}
+              R$ {{ itemBasePrice(item).toFixed(2) }} x {{ item.quantity }}
             </div>
 
             <div
               v-if="item.options && item.options.length"
-              class="q-mt-xs flex wrap"
+              class="q-mt-xs flex wrap items-center"
             >
+              <q-chip
+                dense
+                color="orange-1"
+                text-color="deep-orange-9"
+                icon="add_circle"
+                class="q-mr-xs q-mb-xs option-total-chip"
+                :label="`Somando adicionais: +R$ ${itemOptionsPrice(
+                  item
+                ).toFixed(2)}`"
+              />
               <q-badge
                 v-for="option in item.options"
                 :key="`${option.option_id}-${option.item_id}`"
                 dense
-                color="secondary"
-                text-color="white"
+                color="blue-grey-1"
+                text-color="blue-grey-9"
                 class="q-mr-xs q-mb-xs q-pr-sm"
               >
-                + {{ option.item_name }} - R$
+                + {{ optionLabel(option) }} • R$
                 {{ Number(option.price).toFixed(2) }}
               </q-badge>
             </div>
 
-            <div class="text-primary text-caption q-mt-xs">
-              <strong>Subtotal:</strong> R$ {{ itemSubtotal(item).toFixed(2) }}
+            <div class="text-primary text-caption q-mt-xs text-weight-medium">
+              <strong>Total do item:</strong> R$
+              {{ itemSubtotal(item).toFixed(2) }}
             </div>
           </div>
 
@@ -613,6 +624,26 @@ function itemSubtotal(item) {
   return cart.itemSubtotal(item);
 }
 
+function itemBasePrice(item) {
+  return Number(item?.base_unit_price ?? item?.unit_price ?? 0);
+}
+
+function itemOptionsPrice(item) {
+  const explicitOptionsPrice = Number(item?.options_unit_price);
+  if (Number.isFinite(explicitOptionsPrice)) {
+    return explicitOptionsPrice;
+  }
+
+  return (item?.options || []).reduce(
+    (total, option) => total + Number(option?.price || 0),
+    0
+  );
+}
+
+function optionLabel(option) {
+  return option?.name || option?.item_name || "Adicional";
+}
+
 function confirmClearCart() {
   confirm({
     title: "Esvaziar Carrinho",
@@ -672,11 +703,15 @@ function abrirPagamento(order) {
 <style scoped>
 .cart-drawer {
   width: 480px;
+  max-width: 100vw;
 }
 .cart-header {
   background: #fff;
   border-bottom: 1px solid #eee;
   padding: 8px 12px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 .cart-item {
   background-color: #fff;
@@ -684,6 +719,10 @@ function abrirPagamento(order) {
   margin: 6px 0;
   padding: 8px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+.cart-list {
+  max-height: calc(100dvh - 220px);
+  overflow-y: auto;
 }
 .text-subtitle1 {
   font-size: 0.95rem;
@@ -700,5 +739,18 @@ function abrirPagamento(order) {
 .hover-scale:hover {
   transform: scale(1.1);
   transition: 0.2s ease;
+}
+.option-total-chip {
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .cart-drawer {
+    width: 100vw;
+  }
+
+  .cart-item {
+    border-radius: 12px;
+  }
 }
 </style>
