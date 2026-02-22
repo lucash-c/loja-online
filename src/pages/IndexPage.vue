@@ -76,6 +76,10 @@ import CartDrawer from "src/components/CartDrawer.vue";
 import AddonsDialog from "src/components/AddonsDialog.vue";
 import { normalizeId } from "src/utils/normalizeId";
 import { useRoute } from "vue-router";
+import {
+  groupProductsByCategory,
+  resolveProductCategory,
+} from "src/store/products";
 
 const route = useRoute();
 const products = ref([]);
@@ -114,32 +118,17 @@ const filteredProducts = computed(() => {
 });
 
 // Agrupa produtos por categoria
-const groupedProducts = computed(() => {
-  const groups = {};
-  for (const product of filteredProducts.value) {
-    const category = (product.categoria || "Outros")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toUpperCase();
-    if (!groups[category]) groups[category] = [];
-    groups[category].push(product);
-  }
-  return groups;
-});
+const groupedProducts = computed(() =>
+  groupProductsByCategory(filteredProducts.value)
+);
 
 // Filtra addons da categoria do produto selecionado
 const filteredAddons = computed(() => {
   if (!selectedProduct.value) return [];
-  const productCategory = (selectedProduct.value.categoria || "Outros")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase();
+  const productCategory = resolveProductCategory(selectedProduct.value);
   return addons.value.filter((addon) => {
     if (addon.is_active === false) return false;
-    const addonCategory = (addon.categoria || "Outros")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toUpperCase();
+    const addonCategory = resolveProductCategory(addon);
     return addonCategory === productCategory;
   });
 });
@@ -170,8 +159,12 @@ onMounted(async () => {
   try {
     const menu = await getPublicMenu(publicKey);
 
-    products.value = (menu.products || []).filter((product) => product.is_active !== false);
-    addons.value = (menu.addons || []).filter((addon) => addon.is_active !== false);
+    products.value = (menu.products || []).filter(
+      (product) => product.is_active !== false
+    );
+    addons.value = (menu.addons || []).filter(
+      (addon) => addon.is_active !== false
+    );
 
     if (menu.loja) {
       localStorage.setItem("loja", JSON.stringify(menu.loja));
@@ -179,7 +172,8 @@ onMounted(async () => {
   } catch (error) {
     console.error("Erro ao carregar dados:", error);
     if (!contextError.value) {
-      contextError.value = "Não foi possível carregar o cardápio agora. Tente novamente em instantes.";
+      contextError.value =
+        "Não foi possível carregar o cardápio agora. Tente novamente em instantes.";
     }
   }
 });
@@ -188,16 +182,10 @@ onMounted(async () => {
 function openAddonsDialogFn(product) {
   selectedProduct.value = product;
 
-  const productCategory = (product.categoria || "Outros")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase();
+  const productCategory = resolveProductCategory(product);
   const categoryAddons = addons.value.filter((addon) => {
     if (addon.is_active === false) return false;
-    const addonCategory = (addon.categoria || "Outros")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toUpperCase();
+    const addonCategory = resolveProductCategory(addon);
     return addonCategory === productCategory;
   });
 

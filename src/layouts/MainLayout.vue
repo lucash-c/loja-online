@@ -49,7 +49,7 @@
           dense
         >
           <ScrollTab
-            v-for="(items, category) in productStore.groupedProducts"
+            v-for="(items, category) in headerCategories"
             :key="category"
             :label="category"
             :target-id="normalizeId(category)"
@@ -94,7 +94,7 @@
       <q-scroll-area style="height: calc(100% - 50px)">
         <q-list padding>
           <Categories
-            v-for="(items, category) in productStore.groupedProducts"
+            v-for="(items, category) in headerCategories"
             :key="category"
             :title="category"
             icon="label"
@@ -124,12 +124,14 @@
 <script setup>
 import { ref, computed, onMounted, nextTick, onBeforeUnmount } from "vue";
 import { useQuasar, LocalStorage } from "quasar";
-import { useProductStore } from "src/store/products";
+import { groupProductsByCategory, useProductStore } from "src/store/products";
 import { useRoute, useRouter } from "vue-router";
 import ScrollTab from "src/components/ScrollTab.vue";
 import Categories from "src/components/Categories.vue";
 import { normalizeId } from "src/utils/normalizeId";
 import { getImageSrc } from "src/utils/image";
+import { getPublicMenu } from "src/services/menuApi";
+import { resolvePublicKey } from "src/store/publicContext";
 
 defineOptions({ name: "MainLayout" });
 
@@ -145,8 +147,17 @@ const isScrollingProgrammatically = ref(false);
 const observers = [];
 const routerViewKey = ref(0);
 const loja = ref(null);
+const headerProducts = ref([]);
 
-const lojaNome = computed(() => loja.value?.nome || loja.value?.name || 'Pedido Online');
+const headerCategories = computed(() =>
+  groupProductsByCategory(
+    headerProducts.value.filter((product) => product.is_active !== false)
+  )
+);
+
+const lojaNome = computed(
+  () => loja.value?.nome || loja.value?.name || "Pedido Online"
+);
 
 // Responsividade
 const isMobile = computed(() => $q.screen.lt.md);
@@ -172,11 +183,31 @@ onMounted(() => {
   document.title = lojaNome.value;
 
   productStore.loadProducts(route).then(() => {
-    nextTick(() => {
-      const firstCategory = Object.keys(productStore.groupedProducts)[0];
-      if (firstCategory) activeTab.value = normalizeId(firstCategory);
-      watchScroll();
-    });
+    const publicKey = resolvePublicKey(route);
+
+    if (!publicKey) {
+      nextTick(() => {
+        const firstCategory = Object.keys(headerCategories.value)[0];
+        if (firstCategory) activeTab.value = normalizeId(firstCategory);
+        watchScroll();
+      });
+      return;
+    }
+
+    getPublicMenu(publicKey)
+      .then((menu) => {
+        headerProducts.value = menu.products || [];
+      })
+      .catch((error) => {
+        console.error("Erro ao carregar categorias do header:", error);
+      })
+      .finally(() => {
+        nextTick(() => {
+          const firstCategory = Object.keys(headerCategories.value)[0];
+          if (firstCategory) activeTab.value = normalizeId(firstCategory);
+          watchScroll();
+        });
+      });
   });
 });
 
@@ -219,7 +250,7 @@ function handleCategoryClick(category) {
 }
 
 function watchScroll() {
-  const categories = Object.keys(productStore.groupedProducts);
+  const categories = Object.keys(headerCategories.value);
   categories.forEach((category) => {
     const el = document.getElementById(normalizeId(category));
     if (!el) return;
