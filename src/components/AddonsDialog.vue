@@ -16,7 +16,7 @@
             class="q-gutter-sm"
           >
             <div class="text-subtitle1">
-              {{ option.nome || `Grupo ${index + 1}` }}
+              {{ option.name || `Grupo ${index + 1}` }}
               <span v-if="option.required" class="text-negative">*</span>
             </div>
 
@@ -28,12 +28,19 @@
 
             <div class="text-caption text-grey-7">
               <span v-if="option.required">Obrigatório. </span>
-              <span v-if="option.min_choices != null">
+              <span v-if="option.min_choices > 0">
                 Mínimo: {{ option.min_choices }}.
               </span>
               <span v-if="option.max_choices != null">
                 Máximo: {{ option.max_choices }}.
               </span>
+            </div>
+
+            <div
+              v-if="validationByOption[getOptionKey(option, index)]"
+              class="text-caption text-negative"
+            >
+              {{ validationByOption[getOptionKey(option, index)] }}
             </div>
           </div>
         </template>
@@ -57,6 +64,13 @@
 import { ref, computed, watch } from "vue";
 import { useQuasar } from "quasar";
 import { useAppDialog } from "src/utils/dialogs";
+import {
+  buildSelectionPayload,
+  getOptionKey,
+  getSelectedIds,
+  isSingleChoice,
+  validateOptionGroups,
+} from "src/utils/publicOptionSelection";
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -73,9 +87,10 @@ const isOpenProxy = computed({
 const $q = useQuasar();
 const { confirm } = useAppDialog();
 const selectedByOption = ref({});
+const validationByOption = ref({});
 
 const optionGroups = computed(() => {
-  if (Array.isArray(props.product?.options) && props.product.options.length > 0) {
+  if (Array.isArray(props.product?.options)) {
     return props.product.options;
   }
 
@@ -86,9 +101,10 @@ const optionGroups = computed(() => {
   return [
     {
       id: "legacy-addons",
-      nome: "Adicionais",
+      name: "Adicionais",
+      type: "multiple",
       required: false,
-      min_choices: null,
+      min_choices: 0,
       max_choices: null,
       items: props.addons,
     },
@@ -100,6 +116,7 @@ watch(
   (val) => {
     if (!val) return;
 
+    validationByOption.value = {};
     selectedByOption.value = optionGroups.value.reduce((acc, option, index) => {
       const key = getOptionKey(option, index);
       acc[key] = isSingleChoice(option) ? null : [];
@@ -107,14 +124,6 @@ watch(
     }, {});
   }
 );
-
-function getOptionKey(option, index) {
-  return String(option?.id ?? option?.codigo ?? `option-${index}`);
-}
-
-function isSingleChoice(option) {
-  return Number(option?.max_choices) === 1;
-}
 
 function formatPrice(price) {
   return Number(price || 0).toLocaleString("pt-BR", {
@@ -124,106 +133,50 @@ function formatPrice(price) {
 }
 
 function itemLabel(item) {
-  const price = Number(item?.price ?? item?.preco ?? 0);
+  const price = Number(item?.price ?? 0);
   if (price > 0) {
-    return `${item?.nome || item?.name} (+R$ ${formatPrice(price)})`;
+    return `${item?.name} (+R$ ${formatPrice(price)})`;
   }
 
-  return item?.nome || item?.name;
-}
-
-function getSelectedIds(option, index) {
-  const key = getOptionKey(option, index);
-  const current = selectedByOption.value[key];
-  if (isSingleChoice(option)) {
-    return current ? [current] : [];
-  }
-
-  return Array.isArray(current) ? current : [];
+  return item?.name;
 }
 
 function buildGroupOptions(option, index) {
-  const selectedIds = getSelectedIds(option, index);
+  const selectedIds = getSelectedIds(selectedByOption.value, option, index);
   const maxChoices = Number(option?.max_choices);
   const hasMaxChoices = Number.isFinite(maxChoices) && maxChoices > 0;
   const maxReached = !isSingleChoice(option) && hasMaxChoices && selectedIds.length >= maxChoices;
 
   return (option?.items || []).map((item, itemIndex) => {
-    const itemId = String(item?.id ?? item?.codigo ?? `item-${itemIndex}`);
+    const itemId = String(item?.id ?? `item-${itemIndex}`);
     const isSelected = selectedIds.includes(itemId);
 
     return {
       label: itemLabel(item),
       value: itemId,
       disable: item?.is_active === false || (!isSelected && maxReached),
-      item,
     };
   });
 }
+
 
 function validateSelections() {
-  for (let index = 0; index < optionGroups.value.length; index += 1) {
-    const option = optionGroups.value[index];
-    const selectedIds = getSelectedIds(option, index);
-    const minChoices = Number(option?.min_choices);
-    const maxChoices = Number(option?.max_choices);
-
-    if (option?.required && selectedIds.length === 0) {
-      return `O grupo \"${option?.nome || index + 1}\" é obrigatório.`;
-    }
-
-    if (Number.isFinite(minChoices) && minChoices > 0 && selectedIds.length < minChoices) {
-      return `Selecione pelo menos ${minChoices} item(ns) em \"${option?.nome || index + 1}\".`;
-    }
-
-    if (Number.isFinite(maxChoices) && maxChoices > 0 && selectedIds.length > maxChoices) {
-      return `Selecione no máximo ${maxChoices} item(ns) em \"${option?.nome || index + 1}\".`;
-    }
-  }
-
-  return null;
-}
-
-function buildSelectionPayload() {
-  const groups = optionGroups.value.map((option, optionIndex) => {
-    const optionId = getOptionKey(option, optionIndex);
-    const selectedIds = getSelectedIds(option, optionIndex);
-    const selectedItems = (option?.items || [])
-      .filter((item, itemIndex) => {
-        const itemId = String(item?.id ?? item?.codigo ?? `item-${itemIndex}`);
-        return selectedIds.includes(itemId);
-      })
-      .map((item) => ({
-        ...item,
-        option_id: optionId,
-        option_name: option?.nome || option?.name || null,
-      }));
-
-    return {
-      option_id: optionId,
-      option_name: option?.nome || option?.name || null,
-      selected_item_ids: selectedIds,
-      selected_items: selectedItems,
-    };
-  });
-
-  const flat = groups.flatMap((group) => group.selected_items);
-
-  return { groups, flat };
+  const nextErrors = validateOptionGroups(optionGroups.value, selectedByOption.value);
+  validationByOption.value = nextErrors;
+  return Object.keys(nextErrors).length === 0;
 }
 
 function confirmAddWithAddons() {
-  const validationError = validateSelections();
-  if (validationError) {
+  if (!validateSelections()) {
     $q.notify({
       type: "negative",
-      message: validationError,
+      message: "Revise as opções obrigatórias antes de continuar.",
       position: "top",
     });
     return;
   }
 
-  const selection = buildSelectionPayload();
+  const selection = buildSelectionPayload(optionGroups.value, selectedByOption.value);
 
   confirm({
     title: "Confirmar adicionais",

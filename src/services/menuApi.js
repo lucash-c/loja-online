@@ -4,6 +4,7 @@ import {
   normalizeProduct,
 } from "src/utils/menuNormalizer";
 import { API_URLS } from "src/config/api";
+import { PUBLIC_MENU_OPTIONS_SOURCE } from "src/config/publicMenu";
 
 const MENU_API_BASE_URL = API_URLS.backend;
 const MENU_CACHE_KEY = "publicMenu";
@@ -53,6 +54,7 @@ function normalizeMenuPayload(payload) {
   const categoriesRaw = root.categories || root.categorias || [];
   const addonsRaw = root.addons || root.adicionais || root.options || [];
   const loja = root.store || root.loja || null;
+  const source = root.source || null;
   const entregaConfig =
     root.delivery_config ||
     root.deliveryConfig ||
@@ -137,6 +139,8 @@ function normalizeMenuPayload(payload) {
     formasPagamento: Array.isArray(formasPagamento)
       ? formasPagamento
       : [formasPagamento].filter(Boolean),
+    source,
+    options_source_mode: PUBLIC_MENU_OPTIONS_SOURCE,
     raw: payload,
   };
 }

@@ -97,9 +97,7 @@
                   color="secondary"
                   text-color="white"
                   class="q-mr-xs q-mb-xs"
-                  :label="`${option.item_name} - R$ ${Number(
-                    option.price
-                  ).toFixed(2)}`"
+                  :label="`${option.name} - R$ ${Number(option.price).toFixed(2)}`"
                 />
               </div>
             </q-card>

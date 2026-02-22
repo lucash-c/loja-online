@@ -1,7 +1,4 @@
-const TYPE_ALIASES = {
-  single: 'highest',
-  multiple: 'sum',
-};
+const VALID_OPTION_TYPES = new Set(['single', 'multiple']);
 
 function pickFirst(...values) {
   return values.find((value) => value !== undefined && value !== null);
@@ -32,13 +29,11 @@ function toBoolean(value, fallback = false) {
 
 function normalizeType(type) {
   const normalizedType = String(type || '').trim().toLowerCase();
-  const canonicalType = TYPE_ALIASES[normalizedType] || normalizedType;
-
-  if (['sum', 'highest', 'average'].includes(canonicalType)) {
-    return canonicalType;
+  if (VALID_OPTION_TYPES.has(normalizedType)) {
+    return normalizedType;
   }
 
-  return 'sum';
+  return 'multiple';
 }
 
 export function normalizeOptionItem(raw = {}) {
@@ -81,8 +76,9 @@ export function normalizeOption(raw = {}) {
   ).trim();
   const type = normalizeType(pickFirst(raw.type, raw.tipo));
   const required = toBoolean(pickFirst(raw.required, raw.obrigatorio), false);
-  const minChoices = toNullableNumber(pickFirst(raw.min_choices, raw.minChoices, raw.min));
+  const minChoices = toNumber(pickFirst(raw.min_choices, raw.minChoices, raw.min), 0);
   const maxChoices = toNullableNumber(pickFirst(raw.max_choices, raw.maxChoices, raw.max));
+  const createdAt = pickFirst(raw.created_at, raw.createdAt, null);
 
   return {
     id,
@@ -91,6 +87,7 @@ export function normalizeOption(raw = {}) {
     required,
     min_choices: minChoices,
     max_choices: maxChoices,
+    created_at: createdAt,
     items,
     // aliases legados
     codigo: id,
