@@ -182,14 +182,8 @@ onMounted(async () => {
 function openAddonsDialogFn(product) {
   selectedProduct.value = product;
 
-  const productCategory = resolveProductCategory(product);
-  const categoryAddons = addons.value.filter((addon) => {
-    if (addon.is_active === false) return false;
-    const addonCategory = resolveProductCategory(addon);
-    return addonCategory === productCategory;
-  });
 
-  if (!product.has_options || categoryAddons.length === 0) {
+  if (!Array.isArray(product.options) || product.options.length === 0) {
     cartStore.addItem(product);
     animateCart();
     return;
