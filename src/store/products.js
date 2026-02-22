@@ -6,9 +6,9 @@ import { resolvePublicKey } from 'src/services/publicMenuContext';
 export const useProductStore = defineStore('products', () => {
   const products = ref([]);
 
-  async function loadProducts() {
+  async function loadProducts(route) {
     try {
-      const publicKey = resolvePublicKey();
+      const publicKey = resolvePublicKey(route);
       products.value = await getProducts(publicKey);
     } catch (error) {
       console.error("Erro ao carregar produtos:", error);

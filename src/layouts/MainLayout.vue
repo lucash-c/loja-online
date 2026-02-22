@@ -125,7 +125,7 @@
 import { ref, computed, onMounted, nextTick, onBeforeUnmount } from "vue";
 import { useQuasar, LocalStorage } from "quasar";
 import { useProductStore } from "src/store/products";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import ScrollTab from "src/components/ScrollTab.vue";
 import Categories from "src/components/Categories.vue";
 import { normalizeId } from "src/utils/normalizeId";
@@ -135,6 +135,7 @@ defineOptions({ name: "MainLayout" });
 
 const $q = useQuasar();
 const router = useRouter();
+const route = useRoute();
 const productStore = useProductStore();
 
 const activeTab = ref("");
@@ -170,7 +171,7 @@ onMounted(() => {
 
   document.title = lojaNome.value;
 
-  productStore.loadProducts().then(() => {
+  productStore.loadProducts(route).then(() => {
     nextTick(() => {
       const firstCategory = Object.keys(productStore.groupedProducts)[0];
       if (firstCategory) activeTab.value = normalizeId(firstCategory);
