@@ -1,8 +1,8 @@
 import { getEntregaConfig } from "src/services/menuApi";
 import { resolvePublicKey } from "src/services/publicMenuContext";
+import { API_URLS } from "src/config/api";
 
-const DISTANCIA_API_URL =
-  "http://yss4sogcw0808kwskw4gg8cg.109.199.124.100.sslip.io/distancia";
+const DISTANCIA_API_URL = `${API_URLS.distance}/distancia`;
 
 /**
  * Calcula a distância entre CEP da loja e do cliente
@@ -40,8 +40,7 @@ export async function calcularEntrega(cepCliente, tipoPedido = "entrega") {
 
     // Procurar linha de retirada nas configurações
     const linhaRetirada = configuracoes.find(
-      (c) =>
-        String(c["distancia-km"]).trim().toLowerCase() === "0"
+      (c) => String(c["distancia-km"]).trim().toLowerCase() === "0"
     );
 
     // Se for retirada (tipo "retirada" ou distância zero)
@@ -49,9 +48,7 @@ export async function calcularEntrega(cepCliente, tipoPedido = "entrega") {
       const tempo = linhaRetirada
         ? parseInt(linhaRetirada["tempo-minutos"]) || 20
         : 20;
-      const taxa = linhaRetirada
-        ? parseFloat(linhaRetirada["taxa"]) || 0
-        : 0;
+      const taxa = linhaRetirada ? parseFloat(linhaRetirada["taxa"]) || 0 : 0;
 
       return {
         atende: true,
@@ -66,8 +63,7 @@ export async function calcularEntrega(cepCliente, tipoPedido = "entrega") {
     const faixas = configuracoes
       .filter(
         (c) =>
-          !isNaN(parseFloat(c["distancia-km"])) &&
-          !isNaN(parseFloat(c["taxa"]))
+          !isNaN(parseFloat(c["distancia-km"])) && !isNaN(parseFloat(c["taxa"]))
       )
       .map((c) => ({
         distancia: parseFloat(c["distancia-km"]),
