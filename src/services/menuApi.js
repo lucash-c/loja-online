@@ -2,19 +2,20 @@ import {
   normalizeOption,
   normalizeOptionItem,
   normalizeProduct,
-} from 'src/utils/menuNormalizer';
+} from "src/utils/menuNormalizer";
+import { API_URLS } from "src/config/api";
 
-const MENU_API_BASE_URL = (import.meta.env.VITE_MENU_API_BASE_URL || '').replace(/\/$/, '');
-const MENU_CACHE_KEY = 'publicMenu';
+const MENU_API_BASE_URL = API_URLS.backend;
+const MENU_CACHE_KEY = "publicMenu";
 
 function buildMenuUrl(publicKey) {
-  const normalizedKey = String(publicKey || '').trim();
+  const normalizedKey = String(publicKey || "").trim();
   if (!normalizedKey) {
-    throw new Error('Chave pública da loja não informada.');
+    throw new Error("Chave pública da loja não informada.");
   }
 
   const path = `/public/menu/${encodeURIComponent(normalizedKey)}`;
-  return MENU_API_BASE_URL ? `${MENU_API_BASE_URL}${path}` : path;
+  return `${MENU_API_BASE_URL}${path}`;
 }
 
 function readCachedMenu() {
@@ -37,7 +38,8 @@ async function parseResponsePayload(response) {
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
-    const details = payload?.message || payload?.error || `HTTP ${response.status}`;
+    const details =
+      payload?.message || payload?.error || `HTTP ${response.status}`;
     throw new Error(`Falha ao carregar cardápio público: ${details}`);
   }
 
@@ -80,7 +82,9 @@ function normalizeMenuPayload(payload) {
     products,
     addons,
     loja,
-    entregaConfig: Array.isArray(entregaConfig) ? entregaConfig : [entregaConfig].filter(Boolean),
+    entregaConfig: Array.isArray(entregaConfig)
+      ? entregaConfig
+      : [entregaConfig].filter(Boolean),
     formasPagamento: Array.isArray(formasPagamento)
       ? formasPagamento
       : [formasPagamento].filter(Boolean),
@@ -93,9 +97,9 @@ export async function getPublicMenu(publicKey) {
 
   try {
     const response = await fetch(url, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        Accept: 'application/json',
+        Accept: "application/json",
       },
     });
 
@@ -104,13 +108,15 @@ export async function getPublicMenu(publicKey) {
     saveCachedMenu(normalized);
 
     if (normalized.loja) {
-      localStorage.setItem('loja', JSON.stringify(normalized.loja));
+      localStorage.setItem("loja", JSON.stringify(normalized.loja));
     }
 
     return normalized;
   } catch (error) {
     if (error instanceof TypeError) {
-      throw new Error('Erro de rede ao carregar cardápio público. Verifique sua conexão.');
+      throw new Error(
+        "Erro de rede ao carregar cardápio público. Verifique sua conexão."
+      );
     }
 
     throw error;
