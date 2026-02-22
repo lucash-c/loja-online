@@ -50,6 +50,7 @@ function normalizeMenuPayload(payload) {
   const root = payload?.data || payload || {};
 
   const productsRaw = root.products || root.produtos || root.items || [];
+  const categoriesRaw = root.categories || root.categorias || [];
   const addonsRaw = root.addons || root.adicionais || root.options || [];
   const loja = root.store || root.loja || null;
   const entregaConfig =
@@ -66,8 +67,56 @@ function normalizeMenuPayload(payload) {
     root.pagamento ||
     [];
 
-  const products = Array.isArray(productsRaw)
-    ? productsRaw.map((product) => normalizeProduct(product))
+  const categories = Array.isArray(categoriesRaw) ? categoriesRaw : [];
+  const categoryById = new Map(
+    categories
+      .filter((category) => category && category.id !== undefined)
+      .map((category) => [String(category.id), category])
+  );
+
+  const productsFromCategories = categories.flatMap((category) => {
+    const categoryProducts = Array.isArray(category?.products)
+      ? category.products
+      : [];
+
+    return categoryProducts.map((product) => ({
+      ...product,
+      category_id: product?.category_id ?? category?.id ?? null,
+      category: product?.category || category,
+      category_name: product?.category_name || product?.category?.name || category?.name,
+      categoria: product?.categoria || product?.category_name || product?.category?.name || category?.name,
+    }));
+  });
+
+  const sourceProducts =
+    Array.isArray(productsRaw) && productsRaw.length > 0
+      ? productsRaw
+      : productsFromCategories;
+
+  const products = Array.isArray(sourceProducts)
+    ? sourceProducts.map((product) => {
+        const categoryId = product?.category_id ?? product?.category?.id;
+        const fallbackCategory =
+          categoryId !== undefined && categoryId !== null
+            ? categoryById.get(String(categoryId))
+            : null;
+
+        return normalizeProduct({
+          ...product,
+          category: product?.category || fallbackCategory || null,
+          category_name:
+            product?.category_name ||
+            product?.category?.name ||
+            fallbackCategory?.name ||
+            null,
+          categoria:
+            product?.categoria ||
+            product?.category_name ||
+            product?.category?.name ||
+            fallbackCategory?.name ||
+            'Outros',
+        });
+      })
     : [];
 
   const addons = Array.isArray(addonsRaw)

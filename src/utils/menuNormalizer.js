@@ -146,6 +146,13 @@ export function normalizeProduct(raw = {}) {
   const hasOptions = activeOptions.length > 0;
   const isActive = toBoolean(pickFirst(raw.is_active, raw.active, raw.ativo), true);
   const imageUrl = pickFirst(raw.image_url, raw.imageUrl, raw.imagem, raw.image, null);
+  const categoryName = pickFirst(
+    raw.categoria,
+    raw.category_name,
+    raw.category?.name,
+    raw.category,
+    'Outros'
+  );
 
   return {
     id,
@@ -164,7 +171,7 @@ export function normalizeProduct(raw = {}) {
     descricao: description,
     preco: basePrice,
     categoria_id: categoryId,
-    categoria: pickFirst(raw.categoria, raw.category_name, raw.category, 'Outros'),
+    categoria: typeof categoryName === 'string' ? categoryName : 'Outros',
     tem_opcoes: hasOptions,
     ativo: isActive,
     imagem: imageUrl,

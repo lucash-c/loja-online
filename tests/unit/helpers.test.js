@@ -32,6 +32,19 @@ test('menuNormalizer cobre sum/highest/average + aliases single/multiple', () =>
   assert.equal(product.has_options, true);
 });
 
+
+
+test('normalizeProduct usa nome da categoria quando category vem como objeto', () => {
+  const product = normalizeProduct({
+    id: 1,
+    name: 'Coca-Cola',
+    category: { id: 'cat-1', name: 'Bebidas' },
+  });
+
+  assert.equal(product.categoria, 'Bebidas');
+  assert.equal(product.category_id, 'cat-1');
+});
+
 test('cart pricing aplica sum, highest, average e aliases', () => {
   const product = {
     id: 1,
