@@ -702,7 +702,7 @@ function abrirPagamento(order) {
 
 <style scoped>
 .cart-drawer {
-  width: 480px;
+  width: 50vw;
   max-width: 100vw;
 }
 .cart-header {
