@@ -7,9 +7,19 @@ export function toNumber(value, fallback = 0) {
 
 export function normalizeFlatOption(option = {}) {
   return {
-    option_id: String(option?.option_id ?? option?.optionId ?? option?.option?.id ?? ""),
-    name: option?.name ?? option?.item_name ?? option?.itemName ?? option?.nome ?? option?.item?.name ?? "",
-    item_id: String(option?.item_id ?? option?.itemId ?? option?.id ?? option?.codigo ?? ""),
+    option_id: String(
+      option?.option_id ?? option?.optionId ?? option?.option?.id ?? ""
+    ),
+    name:
+      option?.name ??
+      option?.item_name ??
+      option?.itemName ??
+      option?.nome ??
+      option?.item?.name ??
+      "",
+    item_id: String(
+      option?.item_id ?? option?.itemId ?? option?.id ?? option?.codigo ?? ""
+    ),
     price: toNumber(option?.price ?? option?.preco ?? option?.valor, 0),
   };
 }
@@ -35,18 +45,30 @@ export function dedupeKey(productId, options = []) {
 
 export function getOptionsPriceByRule(product, options = []) {
   void product;
-  return options.reduce((total, option) => total + toNumber(option.price, 0), 0);
+  return options.reduce(
+    (total, option) => total + toNumber(option.price, 0),
+    0
+  );
 }
 
 export function normalizeCartItem(product, rawOptions = []) {
-  const normalizedOptions = sortFlatOptions(rawOptions.map((option) => normalizeFlatOption(option)));
-  const basePrice = toNumber(product?.base_price ?? product?.price ?? product?.preco, 0);
+  const normalizedOptions = sortFlatOptions(
+    rawOptions.map((option) => normalizeFlatOption(option))
+  );
+  const basePrice = toNumber(
+    product?.base_price ?? product?.price ?? product?.preco,
+    0
+  );
   const optionsPrice = getOptionsPriceByRule(product, normalizedOptions);
 
   return {
-    product_id: String(product?.id ?? product?.product_id ?? product?.codigo ?? ""),
+    product_id: String(
+      product?.id ?? product?.product_id ?? product?.codigo ?? ""
+    ),
     product_name: product?.name ?? product?.product_name ?? product?.nome ?? "",
     quantity: 1,
+    base_unit_price: basePrice,
+    options_unit_price: optionsPrice,
     unit_price: basePrice + optionsPrice,
     image_url: product?.image_url ?? product?.imagem ?? null,
     options: normalizedOptions,
@@ -75,7 +97,10 @@ export const useCartStore = defineStore("cart", {
   actions: {
     addItem(product, options = []) {
       const normalizedItem = normalizeCartItem(product, options);
-      const itemKey = dedupeKey(normalizedItem.product_id, normalizedItem.options);
+      const itemKey = dedupeKey(
+        normalizedItem.product_id,
+        normalizedItem.options
+      );
 
       const existingItem = this.items.find(
         (item) => dedupeKey(item.product_id, item.options) === itemKey
